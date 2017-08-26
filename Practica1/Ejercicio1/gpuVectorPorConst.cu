@@ -4,7 +4,6 @@
 #include <sys/resource.h>
 #include <driver_types.h>
 
-
 void checkparams(unsigned long *n, unsigned int *cb);
 
 double dwalltime(){
