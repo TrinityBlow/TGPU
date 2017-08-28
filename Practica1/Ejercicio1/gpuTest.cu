@@ -44,7 +44,6 @@ int main(int argc, char *argv[]){
   unsigned long n = (argc > 1)?atoi (argv[1]):N;
   // Número de hilos en cada bloque CUDA (predeterminado: CUDA_BLK 64)
   unsigned int cb = (argc > 2)?atoi (argv[2]):CUDA_BLK;
-  checkparams(&n, &cb);
   unsigned int numBytes = n * sizeof(basetype);
   unsigned int i;
   basetype *vectorV = (basetype *) malloc(numBytes);
@@ -53,21 +52,21 @@ int main(int argc, char *argv[]){
   double timetick;
   cudaError_t error;
 
+  printf("%lu||%u\n",n,cb);
   for(i = 0; i < n; i++) {
     vectorV[i] = (basetype)i;
   }
-
   cudaMalloc((void **) &cV, numBytes);
   cudaMemcpy(cV, vectorV, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
 
   // Bloque unidimensional de hilos (*cb* hilos)
   dim3 dimBlock(cb);
-
+  unsigned int cant_threads = (n + dimBlock.x - 1) / dimBlock.x; 
   // Grid unidimensional (*ceil(n/cb)* bloques)
-  dim3 dimGrid((n + dimBlock.x - 1) / dimBlock.x);
+  dim3 dimGrid(cant_threads);
 
   timetick = dwalltime();
-  constV_kernel_cuda<<<dimGrid, dimBlock>>>(cV, n, C);
+  constV_kernel_cuda<<<(dimGrid), dimBlock>>>(cV, n, C);
   cudaThreadSynchronize();
   printf("-> Tiempo de ejecucion en GPU %f\n", dwalltime() - timetick);
   error = cudaGetLastError();
