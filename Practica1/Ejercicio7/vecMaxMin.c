@@ -3,7 +3,8 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-//134217728
+//524288000 4GB ram con double
+//134217728 1GB ram con double
 
 double dwalltime(){
 	double sec;
@@ -21,27 +22,27 @@ int main(int argc, char *argv[]){
         return 0;
     }
     unsigned int N = atoi (argv[1]);
-    double *vecA,*vecB,timetick;
+    double *vecA,min,max,timetick;
     unsigned int i;
 
     vecA = (double *)malloc(sizeof(double)*N);
-    vecB = (double *)malloc(sizeof(double)*N);
 
     for (i = 0; i < N; i++){
         vecA[i] = i;
-        vecB[i] = i;
     }
+    min = vecA[0];
+    max = vecA[0];
 
 	timetick = dwalltime();
-    for (i = 0; i < N; i++){
-		vecA[i] = vecA[i] + vecB[i];
+    for (i = 1; i < N; i++){
+		if (vecA[i] > max) {
+            max = vecA[i];
+        } else{
+            min = vecA[i];
+        }
 	}
-	printf("Tiempo para sumar los vectores: %f\n",dwalltime() - timetick);
-
-    for(i= 0; i < 20; i++){
-        printf("%f|",vecA[i]);
-    }
-	printf("\n");
+	printf("Tiempo de busqueda: %f\n",dwalltime() - timetick);
+    printf("Max:%f\nMin:%f\n",max,min);
 
     return 0;
 }

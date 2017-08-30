@@ -21,27 +21,22 @@ int main(int argc, char *argv[]){
         return 0;
     }
     unsigned int N = atoi (argv[1]);
-    double *vecA,*vecB,timetick;
+    double *vecA,result,timetick;
     unsigned int i;
 
     vecA = (double *)malloc(sizeof(double)*N);
-    vecB = (double *)malloc(sizeof(double)*N);
+    result = 0;
 
     for (i = 0; i < N; i++){
         vecA[i] = i;
-        vecB[i] = i;
     }
 
 	timetick = dwalltime();
     for (i = 0; i < N; i++){
-		vecA[i] = vecA[i] + vecB[i];
+		result = vecA[i] + result ;
 	}
-	printf("Tiempo para sumar los vectores: %f\n",dwalltime() - timetick);
-
-    for(i= 0; i < 20; i++){
-        printf("%f|",vecA[i]);
-    }
-	printf("\n");
+	printf("Tiempo para sumar los elementos: %f\n",dwalltime() - timetick);
+    printf("%f\n",result);
 
     return 0;
 }
