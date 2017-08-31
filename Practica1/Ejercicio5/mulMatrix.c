@@ -27,7 +27,7 @@ int main(int argc, char *argv[]){
 	B=(double*)malloc(sizeof(double)*N*N);
 	C=(double*)malloc(sizeof(double)*N*N);
 	for(i = 0; i < tam_matrix; i++){
-		A[i] = 3.0;
+		A[i] = 2.0;
 		B[i] = 3.0;
 		C[i] = 0.0;
 	}
@@ -48,7 +48,8 @@ int main(int argc, char *argv[]){
 		printf("|%.2lf",C[i*N+j]);
     	}
 	printf("\n");
-    }*/
+	}*/
+	printf("%.2lf\n",C[0]);
     
 	 printf("Tiempo en segundos %f\n", dwalltime() - timetick);
 	free(A);

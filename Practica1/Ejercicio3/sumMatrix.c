@@ -47,5 +47,7 @@ int main(int argc, char *argv[]){
     }
 	printf("\n");*/
 
+    free(matA);
+    free(matB);
     return 0;
 }

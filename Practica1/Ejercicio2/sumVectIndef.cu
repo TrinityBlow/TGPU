@@ -19,10 +19,10 @@ void checkparams(unsigned long *n, unsigned int *cb);
 double dwalltime();
 
 
-__global__ void sumV_kernel_cuda(double *d_vecA,double *d_vecB, unsigned long n){
+__global__ void sumV_kernel_cuda(double *d_vecA,double *d_vecB, long n, unsigned long dist){
     unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (global_id < n)
-        d_vecA[global_id] = d_vecA[global_id] + d_vecB[global_id];
+    if (global_id + dist < n)
+        d_vecA[global_id + dist] = d_vecA[global_id + dist] + d_vecB[global_id + dist];
 }
 
 
@@ -34,13 +34,16 @@ int main(int argc, char *argv[]){
     }
     unsigned long N = atoi (argv[1]);
     unsigned int CUDA_BLK = atoi(argv[2]);*/
-    unsigned long N = 1024 * 1024;
-    unsigned int CUDA_BLK = 4;
-    checkparams(&N,&CUDA_BLK);
+    unsigned long N = 107107840;
+    unsigned int CUDA_BLK = 32;
+    unsigned long max_N = N;
+    checkparams(&max_N,&CUDA_BLK);
     double *vecA,*vecB,*d_vecA,*d_vecB,timetick;
     unsigned int i;
     cudaError_t error;
     unsigned long numBytes =sizeof(double)*N ;
+    struct cudaDeviceProp capabilities;
+    cudaGetDeviceProperties (&capabilities, 0);
 
     vecA = (double *)malloc(numBytes);
     vecB = (double *)malloc(numBytes);
@@ -56,13 +59,21 @@ int main(int argc, char *argv[]){
   cudaMemcpy(d_vecB, vecB, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
 
   // Bloque unidimensional de hilos (*cb* hilos)
-  dim3 dimBlock(CUDA_BLK);
+  dim3 dimBlock(32);
   // Grid unidimensional (*ceil(n/cb)* bloques)
-  dim3 dimGrid((N + dimBlock.x - 1) / dimBlock.x);
+  dim3 dimGrid((max_N + dimBlock.x - 1) / dimBlock.x);
 
+     long aux_N = N;
 	timetick = dwalltime();
-    sumV_kernel_cuda<<<dimGrid, dimBlock>>>(d_vecA, d_vecB, N);
-  cudaThreadSynchronize();
+    int rep = 0;
+    while(aux_N > 0){
+        printf("%lu\n",aux_N);
+        sumV_kernel_cuda<<<dimGrid, dimBlock>>>(d_vecA, d_vecB, N, max_N*rep);
+        aux_N = aux_N - max_N;
+        rep++;
+    }
+    cudaThreadSynchronize();
+
   printf("-> Tiempo de ejecucion en GPU %f\n", dwalltime() - timetick);
   error = cudaGetLastError();
 
@@ -77,8 +88,7 @@ int main(int argc, char *argv[]){
     }
 	printf("\n");
     printf("error code: %d\n",error);
-
-    printf("\n%lu||||%lu\n",(N + dimBlock.x - 1) / dimBlock.x,CUDA_BLK);
+    printf("\n%lu||||%lu\n",(max_N + dimBlock.x - 1) / dimBlock.x,CUDA_BLK);
 
     cudaFree (vecA);
     cudaFree (vecB);

@@ -30,7 +30,6 @@ basetype C = 10;
 __global__ void constV_kernel_cuda(basetype *const arrayV,   const int n, basetype c){
 
   unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
-  printf("%d\n",blockDim.x);
   if (global_id < n)
     arrayV[global_id] = arrayV[global_id]*c;
 
