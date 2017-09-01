@@ -33,7 +33,7 @@ int main(int argc, char *argv[]){
         return 0;
     }
     unsigned long N = atoi (argv[1]),tam_tot = N*N;
-    unsigned int CUDA_BLK = 16;
+    unsigned int CUDA_BLK = 4;
     unsigned long numBytes = sizeof(double)*tam_tot;
     checkparams(&tam_tot,&CUDA_BLK);
     double *matA,*matB,*d_matA,*d_matB,timetick;

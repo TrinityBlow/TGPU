@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
     cudaError_t error;
 
     unsigned long N = atoi (argv[1]),tam_tot = N*N;
-    unsigned int CUDA_BLK = 256;
+    unsigned int CUDA_BLK = 32;
     unsigned long numBytes = sizeof(double)*tam_tot;
     checkparams(&tam_tot,&CUDA_BLK);
     double *matA,*matB,*matC,*d_matA,*d_matB,*d_matC,timetick;
@@ -89,6 +89,7 @@ printf("%lu|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
     error = cudaGetLastError();
     printf("error: %d\n",error);
     printf("%.2lf\n",matC[0]);
+    printf("%.2lf\n",matC[N*N-1]);
 
     cudaFree(d_matA);
     cudaFree(d_matB);

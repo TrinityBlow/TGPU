@@ -4,7 +4,6 @@
 #include <sys/resource.h>
 
 //134217728
-
 double dwalltime(){
 	double sec;
 	struct timeval tv;
@@ -14,19 +13,20 @@ double dwalltime(){
 	return sec;
 }
 
-__global__ void mulM_kernel_cuda(double *d_matA,double *d_matB,double *d_matC, unsigned long n){    
+__global__ void mulM_kernel_cuda(double *d_matA,double *d_matB,double *d_matC, unsigned long n, int rep){    
     unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
     int j,k;
-    if (global_id < n){
-        for(j = 0; j < n; j++){
+    if (global_id < n*n/rep){
+        for(j = 0; j < rep; j++){
             for(k = 0; k < n ;k++){
-                d_matC[global_id*n+j] += d_matA[global_id*n+k] * d_matB[j*n+k];
+                d_matC[global_id*rep+j] += d_matA[(global_id / n) * n+k] * d_matB[((global_id*rep+j) % n ) * n + k];
             }
         }
     }
 }
 
 void checkparams(unsigned long *n, unsigned int *cb);
+int checkparamsB(unsigned long *n, unsigned int *cb);
 
 int main(int argc, char *argv[]){
 
@@ -37,12 +37,11 @@ int main(int argc, char *argv[]){
     cudaError_t error;
 
     unsigned long N = atoi (argv[1]),tam_tot = N*N;
-    unsigned int CUDA_BLK = 256;
+    unsigned int CUDA_BLK = 32;
     unsigned long numBytes = sizeof(double)*tam_tot;
-    checkparams(&tam_tot,&CUDA_BLK);
+    int rep = checkparamsB(&tam_tot,&CUDA_BLK);
     double *matA,*matB,*matC,*d_matA,*d_matB,*d_matC,timetick;
     unsigned int i,j;
-
 
     matA = (double *)malloc(numBytes);
     matB = (double *)malloc(numBytes);
@@ -65,13 +64,13 @@ int main(int argc, char *argv[]){
   // Bloque unidimensional de hilos (*cb* hilos)
   dim3 dimBlock(CUDA_BLK);
   // Grid unidimensional (*ceil(n/cb)* bloques)
-  dim3 dimGrid((N + dimBlock.x - 1) / dimBlock.x);
+  dim3 dimGrid((N*N / rep + dimBlock.x - 1) / dimBlock.x);
 
 
     
 
 	timetick = dwalltime();
-    mulM_kernel_cuda<<<dimGrid, dimBlock>>>(d_matA, d_matB,d_matC, N);
+    mulM_kernel_cuda<<<dimGrid, dimBlock>>>(d_matA, d_matB,d_matC, N,rep);
     cudaThreadSynchronize();
 	printf("Tiempo para sumar las matrices: %f\n",dwalltime() - timetick);
 
@@ -90,6 +89,7 @@ printf("%lu|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
     error = cudaGetLastError();
     printf("error: %d\n",error);
     printf("%.2lf\n",matC[0]);
+    printf("%.2lf\n",matC[N*N-1]);
 
     cudaFree(d_matA);
     cudaFree(d_matB);
@@ -98,6 +98,17 @@ printf("%lu|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
     free(matB);
     free(matC);
     return 0;
+}
+
+int checkparamsB(unsigned long *n, unsigned int *cb){
+
+  struct cudaDeviceProp capabilities;
+  cudaGetDeviceProperties (&capabilities, 0);
+    int rep = 1;
+    while ((*n / rep) > (*cb * capabilities.maxGridSize[0])){      
+        rep++;
+    }
+    return rep;    
 }
 
 void checkparams(unsigned long *n, unsigned int *cb){
