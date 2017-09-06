@@ -29,10 +29,10 @@ void checkparams(unsigned long *n, unsigned int *cb);
 
 int main(int argc, char *argv[]){
 
-    if (argc != 2){
-        printf("Falta argumento: N\n");
-        return 0;
-    }
+        if (argc != 2){
+            printf("Falta argumento: N\n");
+            return 0;
+        }
     cudaError_t error;
 
     unsigned long N = atoi (argv[1]),tam_tot = N*N;
