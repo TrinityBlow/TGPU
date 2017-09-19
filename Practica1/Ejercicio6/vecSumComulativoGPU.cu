@@ -15,44 +15,10 @@ double dwalltime(){
 }
 
 
-__global__ void vecSum_kernel_cuda(double *d_vecA,double *d_result,unsigned long rep,unsigned long n){    
+__global__ void vecSum_kernel_cuda(double *d_vecA,double *d_result,unsigned long dist,unsigned long n){    
     unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
-    int i;
-    double aux_sum = 0;
-    __shared__ double aux_result;
-    __shared__ int esperar[1024];
-    __shared__ int termino;
-
-    if (global_id == 0){
-        esperar[global_id] = 0;
-    printf("%d|%d\n",global_id,esperar[global_id]);
-    } else {
-        esperar[global_id] = 1;
-    printf("%d|%d\n",global_id,esperar[global_id]);
-    }
-    if(global_id == 0){
-        aux_result = 0;
-        termino = 1;
-    }
-    __syncthreads();
     if (global_id < n){
-        for (i = 0; i < rep; i++){
-            aux_sum = aux_sum + d_vecA[global_id*rep+i];
-        }
-    }
-   while (esperar[global_id]){
-        __syncthreads();
-    }
-    aux_result = aux_result + aux_sum;
-    if(global_id == 3){
-        *d_result = aux_result;
-        termino = 0;
-    } else{
-        esperar[global_id+1] = 0;
-    }
-    __syncthreads();
-    while(termino){
-        __syncthreads();
+        d_vecA[global_id*dist] = d_vecA[global_id*dist] + d_vecA[global_id*dist+dist / 2];
     }
 }
 
@@ -73,7 +39,7 @@ int main(int argc, char *argv[]){
     unsigned int i;
 
     cudaError_t error;
-    unsigned int CUDA_BLK = 4;
+    unsigned int CUDA_BLK = 32;
    // checkparamsB(&N,&CUDA_BLK);
     unsigned long numBytes = sizeof(double)*N;
     double *d_vecA,*d_result;
@@ -94,22 +60,23 @@ int main(int argc, char *argv[]){
     // Bloque unidimensional de hilos (*cb* hilos)
     dim3 dimBlock(CUDA_BLK);
     // Grid unidimensional (*ceil(n/cb)* bloques)
-    dim3 dimGrid(1);
 
 
 
     timetick = dwalltime();
-    vecSum_kernel_cuda<<<dimGrid, dimBlock>>>(d_vecA,d_result,N/CUDA_BLK,CUDA_BLK);
-    cudaThreadSynchronize();
-    printf("Tiempo para sumar las matrices: %f\n",dwalltime() - timetick);
-
-    cudaMemcpy(result, d_result, sizeof(double), cudaMemcpyDeviceToHost); // GPU -> CPU
-
-
-
-    printf("%d|||||||\n",CUDA_BLK*1);
+    for(i = 2; i <= N ;i *= 2){
+        dim3 dimGrid((N / i + dimBlock.x - 1) / dimBlock.x);
+        vecSum_kernel_cuda<<<dimGrid, dimBlock>>>(d_vecA,d_result,i,N/i);
+        cudaThreadSynchronize();
     error = cudaGetLastError();
     printf("error: %d\n",error);
+    }
+    printf("Tiempo para sumar las matrices: %f\n",dwalltime() - timetick);
+
+    cudaMemcpy(result, d_vecA, sizeof(double), cudaMemcpyDeviceToHost); // GPU -> CPU
+
+
+
     printf("%f\n",*result);
 
     cudaFree(d_vecA);

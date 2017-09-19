@@ -2,8 +2,10 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <math.h>
 
 //134217728
+
 double dwalltime(){
 	double sec;
 	struct timeval tv;
@@ -13,35 +15,32 @@ double dwalltime(){
 	return sec;
 }
 
-__global__ void mulM_kernel_cuda(double *d_matA,double *d_matB,double *d_matC, unsigned long n, int rep){    
-    unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
-    int j,k;
-    if (global_id < n*n/rep){
-        for(j = 0; j < rep; j++){
-            for(k = 0; k < n ;k++){
-                d_matC[global_id*rep+j] += d_matA[(global_id / n) * n+k] * d_matB[((global_id*rep+j) % n ) * n + k];
-            }
+__global__ void mulM_kernel_cuda(double *d_matA,double *d_matB,double *d_matC, unsigned long n){   
+    int k,distA = blockIdx.y * blockDim.y + threadIdx.y, distB = blockIdx.x * blockDim.x + threadIdx.x;
+    if (distA+distB < n*n){
+        for(k = 0; k < n ;k++){
+            d_matC[distA*n+distB] += d_matA[distA*n+k] * d_matB[distB*n+k];
         }
     }
 }
 
+
 void checkparams(unsigned long *n, unsigned int *cb);
-int checkparamsB(unsigned long *n, unsigned int *cb);
 
 int main(int argc, char *argv[]){
 
-    if (argc != 2){
-        printf("Falta argumento: N\n");
-        return 0;
-    }
+        if (argc != 2){
+            printf("Falta argumento: N\n");
+            return 0;
+        }
     cudaError_t error;
 
-    unsigned long N = atoi (argv[1]),tam_tot = N*N;
-    unsigned int CUDA_BLK = 32;
+    unsigned int N = atoi (argv[1]),tam_tot = N*N;
+    unsigned int CUDA_BLK = 8, gridBlock;
     unsigned long numBytes = sizeof(double)*tam_tot;
-    int rep = checkparamsB(&tam_tot,&CUDA_BLK);
     double *matA,*matB,*matC,*d_matA,*d_matB,*d_matC,timetick;
     unsigned int i,j;
+
 
     matA = (double *)malloc(numBytes);
     matB = (double *)malloc(numBytes);
@@ -55,22 +54,27 @@ int main(int argc, char *argv[]){
 
   cudaMalloc((void **) &d_matA, numBytes);
   cudaMalloc((void **) &d_matB, numBytes);
+  cudaMalloc((void **) &d_matBT, numBytes);
   cudaMalloc((void **) &d_matC, numBytes);
   cudaMemcpy(d_matA, matA, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
   cudaMemcpy(d_matB, matB, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
+  cudaMemcpy(d_matBT, matB, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
   cudaMemcpy(d_matC, matC, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
+  gridBlock = (unsigned int)sqrt(N*N/CUDA_BLK/CUDA_BLK);
 
 
+  printf("%u||%u||%u||\n",CUDA_BLK,gridBlock,N);
+  printf("dimBlockSize:%u\ndimGridSize:%u\ntotalMatriz:%u\n",CUDA_BLK*CUDA_BLK,gridBlock*gridBlock,N*N);
   // Bloque unidimensional de hilos (*cb* hilos)
-  dim3 dimBlock(CUDA_BLK);
+  dim3 dimBlock(CUDA_BLK,CUDA_BLK);
   // Grid unidimensional (*ceil(n/cb)* bloques)
-  dim3 dimGrid((N*N / rep + dimBlock.x - 1) / dimBlock.x);
+  dim3 dimGrid(gridBlock,gridBlock);
 
 
     
 
 	timetick = dwalltime();
-    mulM_kernel_cuda<<<dimGrid, dimBlock>>>(d_matA, d_matB,d_matC, N,rep);
+    mulM_kernel_cuda<<<dimGrid, dimBlock>>>(d_matA, d_matB,d_matC, N);
     cudaThreadSynchronize();
 	printf("Tiempo para sumar las matrices: %f\n",dwalltime() - timetick);
 
@@ -85,7 +89,7 @@ int main(int argc, char *argv[]){
 	printf("\n");
     */
 
-printf("%lu|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
+printf("%u|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
     error = cudaGetLastError();
     printf("error: %d\n",error);
     printf("%.2lf\n",matC[0]);
@@ -98,20 +102,6 @@ printf("%lu|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
     free(matB);
     free(matC);
     return 0;
-}
-
-int checkparamsB(unsigned long *n, unsigned int *cb){
-
-  struct cudaDeviceProp capabilities;
-  cudaGetDeviceProperties (&capabilities, 0);
-    int rep = 1;
-    printf("%lu|||%d\n",*n / rep,(*cb * capabilities.maxGridSize[0]));
-    while ((*n / rep) > (*cb * capabilities.maxGridSize[0])){      
-        rep++;
-        printf("%lu|||%d\n",*n / rep,(*cb * capabilities.maxGridSize[0]));
-    }
-    printf("%d|||\n",rep);
-    return rep ;    
 }
 
 void checkparams(unsigned long *n, unsigned int *cb){
