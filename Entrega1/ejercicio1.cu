@@ -15,14 +15,30 @@ double dwalltime(){
 	return sec;
 }
 
-__global__ void mulM_kernel_cuda(double *d_matA,double *d_matB,double *d_matC, unsigned long n){   
-    int k,distA = blockIdx.y * blockDim.y + threadIdx.y, distB = blockIdx.x * blockDim.x + threadIdx.x;
+__global__ void ecuacion(double *d_matA,double *d_matB,double *d_matC,double *d_matAT,double *d_matBT, unsigned long n){   
+    int k;
+    int distA = blockIdx.y * blockDim.y + threadIdx.y; //i
+    int distB = blockIdx.x * blockDim.x + threadIdx.x; //j
+    
+    //transpuesta out-place A
+    if( (i<N*N) && (j<N*N) ){
+        d_matAT [j*N + i] = d_matA[i*N + j];
+    }
+ 
+    //transpuesta out-place A
+    if( (i<N*N) && (j<N*N) ){
+        d_matBT [j*N + i] = d_matB[i*N + j];
+    }
+
+    //multiplicacion 
     if (distA+distB < n*n){
         for(k = 0; k < n ;k++){
             d_matC[distA*n+distB] += d_matA[distA*n+k] * d_matB[distB*n+k];
         }
     }
+    
 }
+
 
 
 void checkparams(unsigned long *n, unsigned int *cb);
@@ -37,8 +53,8 @@ int main(int argc, char *argv[]){
 
     unsigned int N = atoi (argv[1]),tam_tot = N*N;
     unsigned int CUDA_BLK = 8, gridBlock;
-    unsigned long numBytes = sizeof(double)*tam_tot;
-    double *matA,*matB,*matC,*d_matA,*d_matB,*d_matC,timetick;
+    unsigned long numBytes = sizeof(double)*N*N;
+    double *matA,*matB,*matC,*d_matA,*d_matB,*d_matC,*d_matBT,*d_matAT,timetick;
     unsigned int i,j;
 
 
@@ -46,19 +62,19 @@ int main(int argc, char *argv[]){
     matB = (double *)malloc(numBytes);
     matC = (double *)malloc(numBytes);
 
-    for (i = 0; i < tam_tot; i++){
+    for (i = 0; i < N*N; i++){
         matA[i] = 2;
         matB[i] = 3;
         matC[i] = 0;
     }
 
   cudaMalloc((void **) &d_matA, numBytes);
+  cudaMalloc((void **) &d_matAT, numBytes);
   cudaMalloc((void **) &d_matB, numBytes);
   cudaMalloc((void **) &d_matBT, numBytes);
   cudaMalloc((void **) &d_matC, numBytes);
   cudaMemcpy(d_matA, matA, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
   cudaMemcpy(d_matB, matB, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
-  cudaMemcpy(d_matBT, matB, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
   cudaMemcpy(d_matC, matC, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
   gridBlock = (unsigned int)sqrt(N*N/CUDA_BLK/CUDA_BLK);
 
@@ -74,7 +90,7 @@ int main(int argc, char *argv[]){
     
 
 	timetick = dwalltime();
-    mulM_kernel_cuda<<<dimGrid, dimBlock>>>(d_matA, d_matB,d_matC, N);
+    ecuacion<<<dimGrid, dimBlock>>>(d_matA, d_matB,d_matC,d_matBT,d_matAT, N);
     cudaThreadSynchronize();
 	printf("Tiempo para sumar las matrices: %f\n",dwalltime() - timetick);
 
@@ -89,7 +105,7 @@ int main(int argc, char *argv[]){
 	printf("\n");
     */
 
-printf("%u|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
+printf("%u|||||||\n",CUDA_BLK*(N*N + dimBlock.x - 1) / dimBlock.x);
     error = cudaGetLastError();
     printf("error: %d\n",error);
     printf("%.2lf\n",matC[0]);
@@ -98,6 +114,8 @@ printf("%u|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
     cudaFree(d_matA);
     cudaFree(d_matB);
     cudaFree(d_matC);
+    cudaFree(d_matAT);
+    cudaFree(d_matBT);
     free(matA);
     free(matB);
     free(matC);

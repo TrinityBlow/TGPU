@@ -15,12 +15,12 @@ double dwalltime(){
 }
 
 __global__ void sumM_kernel_cuda(double *d_matA,double *d_matB, unsigned long n){    
-    unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
-    int i;
-    if (global_id < n)
-        for(i = 0; i < n;i++){
-            d_matA[global_id*n+i] = d_matA[global_id*n+i] + d_matB[global_id*n+i];
-        }
+    int k;
+    int distA = blockIdx.y * blockDim.y + threadIdx.y; //i
+    int distB = blockIdx.x * blockDim.x + threadIdx.x; //j
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distB*n+k];
+    }
 }
 
 
@@ -33,9 +33,8 @@ int main(int argc, char *argv[]){
         return 0;
     }
     unsigned long N = atoi (argv[1]),tam_tot = N*N;
-    unsigned int CUDA_BLK = 4;
+    unsigned int CUDA_BLK = 8, gridBlock;
     unsigned long numBytes = sizeof(double)*tam_tot;
-    checkparams(&tam_tot,&CUDA_BLK);
     double *matA,*matB,*d_matA,*d_matB,timetick;
     unsigned int i,j;
     matA = (double *)malloc(numBytes);
