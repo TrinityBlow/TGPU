@@ -15,11 +15,55 @@ double dwalltime(){
 }
 
 __global__ void sumM_kernel_cuda(double *d_matA,double *d_matB, unsigned long n){    
-    int k;
     int distA = blockIdx.y * blockDim.y + threadIdx.y; //i
     int distB = blockIdx.x * blockDim.x + threadIdx.x; //j
     if (distA*n+distB < n*n){
-        d_matA[distA*n+distB] += d_matB[distB*n+k];
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
+    }
+    if (distA*n+distB < n*n){
+        d_matA[distA*n+distB] += d_matB[distA*n+distB];
     }
 }
 
@@ -32,8 +76,8 @@ int main(int argc, char *argv[]){
         printf("Falta argumento: N\n");
         return 0;
     }
-    unsigned long N = atoi (argv[1]),tam_tot = N*N;
-    unsigned int CUDA_BLK = 8, gridBlock;
+    unsigned int N = atoi (argv[1]),tam_tot = N*N;
+    unsigned int CUDA_BLK = 16, gridBlock;
     unsigned long numBytes = sizeof(double)*tam_tot;
     double *matA,*matB,*d_matA,*d_matB,timetick;
     unsigned int i,j;
@@ -50,12 +94,18 @@ int main(int argc, char *argv[]){
   cudaMalloc((void **) &d_matB, numBytes);
   cudaMemcpy(d_matA, matA, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
   cudaMemcpy(d_matB, matB, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
+  gridBlock = (unsigned int)sqrt(N*N/CUDA_BLK/CUDA_BLK);
 
-  // Bloque unidimensional de hilos (*cb* hilos)
-  dim3 dimBlock(CUDA_BLK);
-  // Grid unidimensional (*ceil(n/cb)* bloques)
-  dim3 dimGrid((N + dimBlock.x - 1) / dimBlock.x);
+  printf("%u||%u||%u||\n",CUDA_BLK,gridBlock,N);
+  printf("dimBlockSize:%u\ndimGridSize:%u\ntotalMatriz:%u\n",CUDA_BLK*CUDA_BLK,gridBlock*gridBlock,N*N);
+  // Bloque bidimencional de hilos (*cb* hilos)
+  dim3 dimBlock(CUDA_BLK,CUDA_BLK);
+  // Grid bidimencional (*ceil(n/cb)* bloques)
+  dim3 dimGrid(gridBlock,gridBlock);
     cudaError_t error;
+
+
+
 
 	timetick = dwalltime();
     sumM_kernel_cuda<<<dimGrid, dimBlock>>>(d_matA, d_matB, N);
@@ -66,6 +116,8 @@ int main(int argc, char *argv[]){
 error = cudaGetLastError();
 printf("error: %d\n",error);
   cudaMemcpy(matA, d_matA, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
+    
+
     /*
     for(i = 0; i < N; i++){
         for(j = 0; j < N; j++){

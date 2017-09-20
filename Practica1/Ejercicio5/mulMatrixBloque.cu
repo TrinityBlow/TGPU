@@ -17,9 +17,10 @@ double dwalltime(){
 
 __global__ void mulM_kernel_cuda(double *d_matA,double *d_matB,double *d_matC, unsigned long n){   
     int k,distA = blockIdx.y * blockDim.y + threadIdx.y, distB = blockIdx.x * blockDim.x + threadIdx.x;
-    if (distA+distB < n*n){
+    if (distA*n+distB < n*n){
         for(k = 0; k < n ;k++){
             d_matC[distA*n+distB] += d_matA[distA*n+k] * d_matB[distB*n+k];
+            if(distA*n+distB == 0) printf("%f|||%f\n",d_matA[distA*n+k],d_matB[distB*n+k]);
         }
     }
 }
@@ -36,7 +37,7 @@ int main(int argc, char *argv[]){
     cudaError_t error;
 
     unsigned int N = atoi (argv[1]),tam_tot = N*N;
-    unsigned int CUDA_BLK = 8, gridBlock;
+    unsigned int CUDA_BLK = 2, gridBlock;
     unsigned long numBytes = sizeof(double)*tam_tot;
     double *matA,*matB,*matC,*d_matA,*d_matB,*d_matC,timetick;
     unsigned int i,j;
@@ -47,8 +48,8 @@ int main(int argc, char *argv[]){
     matC = (double *)malloc(numBytes);
 
     for (i = 0; i < tam_tot; i++){
-        matA[i] = 2;
-        matB[i] = 3;
+        matA[i] = i;
+        matB[i] = i;
         matC[i] = 0;
     }
 
@@ -77,7 +78,7 @@ int main(int argc, char *argv[]){
 	printf("Tiempo para sumar las matrices: %f\n",dwalltime() - timetick);
 
   cudaMemcpy(matC, d_matC, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
-  /*
+  
     for(i = 0; i < N; i++){
         for(j = 0; j < N; j++){
             printf("%f|",matC[i*N+j]);
@@ -85,7 +86,7 @@ int main(int argc, char *argv[]){
         printf("\n");
     }
 	printf("\n");
-    */
+
 
 printf("%u|||||||\n",CUDA_BLK*(tam_tot + dimBlock.x - 1) / dimBlock.x);
     error = cudaGetLastError();

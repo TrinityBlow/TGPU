@@ -18,6 +18,36 @@ __global__ void sumM_kernel_cuda(double *d_matA,double *d_matB, unsigned long n)
     unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (global_id < n)
         d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
+    if (global_id < n)
+        d_matA[global_id] = d_matA[global_id] + d_matB[global_id];
 }
 
 
@@ -33,11 +63,10 @@ int main(int argc, char *argv[]){
     unsigned int CUDA_BLK = 16;
     unsigned long numBytes = sizeof(double)*tam_tot;
     checkparams(&tam_tot,&CUDA_BLK);
-    double *matA,*matB,*matC,*d_matA,*d_matB,*d_matC,timetick;
+    double *matA,*matB,*d_matA,*d_matB,timetick;
     unsigned int i,j;
     matA = (double *)malloc(numBytes);
     matB = (double *)malloc(numBytes);
-    matC = (double *)malloc(numBytes);
 
     for (i = 0; i < tam_tot; i++){
         matA[i] = i;
@@ -62,14 +91,14 @@ int main(int argc, char *argv[]){
 
 
 
-  cudaMemcpy(matC, d_matC, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
-    for(i = 0; i < N; i++){
+  cudaMemcpy(matA, d_matA, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
+ /*   for(i = 0; i < N; i++){
         for(j = 0; j < N; j++){
             printf("%f|",matA[i*N+j]);
         }
         printf("\n");
     }
-	printf("\n");
+	printf("\n");*/
 
     cudaFree(d_matA);
     cudaFree(d_matB);
