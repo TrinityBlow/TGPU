@@ -68,10 +68,10 @@ int main(int argc, char *argv[]){
         dim3 dimGrid((N / i + dimBlock.x - 1) / dimBlock.x);
         vecSum_kernel_cuda<<<dimGrid, dimBlock>>>(d_vecA,d_result,i,N/i);
         cudaThreadSynchronize();
-    error = cudaGetLastError();
-    printf("error: %d\n",error);
     }
     printf("Tiempo para sumar las matrices: %f\n",dwalltime() - timetick);
+    error = cudaGetLastError();
+    printf("error: %d\n",error);
 
     cudaMemcpy(result, d_vecA, sizeof(double), cudaMemcpyDeviceToHost); // GPU -> CPU
 
