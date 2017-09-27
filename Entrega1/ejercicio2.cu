@@ -25,6 +25,15 @@ __global__ void vecPromedio(double *d_vecA,unsigned long dist,unsigned long n,un
     }
 }
 
+__global__ void sumatoria(double *d_parcialA,double *d_parcialB,double *d_vecPromedio, unsigned long n){    
+    unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (global_id < n){
+        d_parcialA[global_id] = (d_parcialB[global_id] - d_vecPromedio[0]) * (d_parcialB[global_id] - d_vecPromedio[0]);
+        d_parcialB[global_id] = (d_parcialB[global_id] + d_vecPromedio[0]) * (d_parcialB[global_id] + d_vecPromedio[0]);
+    }
+}
+
+
 __global__ void acomulativo(double *d_parcialA,double *d_parcialB,unsigned long dist,unsigned long n,unsigned long tam_tot){    
     unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
     if (global_id < n){
@@ -37,13 +46,7 @@ __global__ void acomulativo(double *d_parcialA,double *d_parcialB,unsigned long 
     }
 }
 
-__global__ void sumatoria(double *d_parcialA,double *d_parcialB,double *d_vecPromedio, unsigned long n){    
-    unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (global_id < n){
-        d_parcialA[global_id] = (d_parcialB[global_id] - d_vecPromedio[0]) * (d_parcialB[global_id] - d_vecPromedio[0]);
-        d_parcialB[global_id] = (d_parcialB[global_id] + d_vecPromedio[0]) * (d_parcialB[global_id] + d_vecPromedio[0]);
-    }
-}
+
 
 
 
@@ -99,7 +102,7 @@ int main(int argc, char *argv[]){
     parcialB += 1;
 
     result = sqrt(parcialA / parcialB);
-	printf("Tiempo para la ecuacion CPU: %f\n\n",dwalltime() - timetick);
+	printf("Tiempo para la CPU: %f\n\n",dwalltime() - timetick);
 
     //--------------------------------cpu termina ------------------------------------
 
@@ -131,7 +134,7 @@ int main(int argc, char *argv[]){
         cudaThreadSynchronize();
     }
 
-	printf("Tiempo para la ecuacion in-place GPU: %f\n",dwalltime() - timetick);
+	printf("Tiempo para la GPU: %f\n",dwalltime() - timetick);
     error = cudaGetLastError();
     printf("error: %d\n\n",error);
     cudaMemcpy(&resultgpu, d_vecA, sizeof(double), cudaMemcpyDeviceToHost); // GPU -> CPU
