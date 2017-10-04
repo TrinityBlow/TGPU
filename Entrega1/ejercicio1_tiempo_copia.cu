@@ -42,32 +42,18 @@ __global__ void ecuacion_kernel_outplace_p2(double *d_matA,double *d_matB,double
     }
 }
 
-__global__ void ecuacion_kernel_inplace_suma (double *d_matA,double *d_matB,double *d_matC, unsigned int n){
-    int distA = blockIdx.y * blockDim.y + threadIdx.y; //i
-    int distB = blockIdx.x * blockDim.x + threadIdx.x; //j
-    int k;
-    //multiplicacion 
-    if (distA*n+distB < (n*n - 1)){
-        d_matC[distA*n+distB] += d_matB[distA*n+distB] + d_matA[distA+distB*n]; 
-        for(k = 0; k < n ;k++){
-            d_matC[distA*n+distB] += d_matA[distA*n+k] * d_matB[distB*n+k]; 
-        }
-    }
-
-}
-
 __global__ void kernel_sum_Matriz (double *d_matA,double *d_matB,double *d_matC, unsigned int n){
     int distA = blockIdx.y * blockDim.y + threadIdx.y; //i
     int distB = blockIdx.x * blockDim.x + threadIdx.x; //j
     //suma 
-    if (distA*n+distB < (n*n)){
-        d_matC[distA*n+distB] += d_matA[distA*n+distB] + d_matB[distA+distB*n]; 
+    if (distA*n+distB <= (n*n)){
+        d_matC[distA*n+distB] += d_matA[distA*n+distB] + d_matB[distA*n+distB]; 
     }
 
 }
 
 __global__ void kernel_transpuesta(double *m, int N){
-	int tid = blockIdx.x*blockDim.x + threadIdx.x;
+	int tid = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 	int i = int((1 + sqrtf(1 + 8*tid)) / 2);
 	int j = tid - (i*(i-1)/2); int aux;
 	if ( (i<N) && (j<N) ){
@@ -83,9 +69,9 @@ __global__ void kernel_mult_sum_matriz (double *d_matA,double *d_matB,double *d_
     int distB = blockIdx.x * blockDim.x + threadIdx.x; //j
     int k;
     //multiplicacion 
-    if (distA*n+distB < (n*n)){
+    if (distA*n+distB <= (n*n)){
         for(k = 0; k < n ;k++){
-            d_matC[distA*n+distB] += d_matA[distA*n+k] * d_matB[distB*n+k]; 
+            d_matC[distA*n+distB] += d_matA[distA*n+k] * d_matB[distB+n*k]; 
         }
     }
 
@@ -156,8 +142,6 @@ int main(int argc, char *argv[]){
     }
 	printf("\n");
 */
-    //--------------------------------cpu termina ------------------------------------
-
 
 
     for (i = 0; i < N*N; i++){
@@ -226,10 +210,12 @@ int main(int argc, char *argv[]){
     cudaThreadSynchronize();
     kernel_transpuesta<<<dimGrid, dimBlock>>>(d_matA, N);
     cudaThreadSynchronize();
+    kernel_transpuesta<<<dimGrid, dimBlock>>>(d_matB, N);
+    cudaThreadSynchronize();
     kernel_mult_sum_matriz<<<dimGrid, dimBlock>>>(d_matA, d_matB,d_matC, N);
     cudaThreadSynchronize();
-
     cudaMemcpy(matC, d_matC, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
+
 	printf("Tiempo para la ecuacion in-place GPU: %f\n",dwalltime() - timetick);
     error = cudaGetLastError();
     printf("error: %d\n\n",error); 

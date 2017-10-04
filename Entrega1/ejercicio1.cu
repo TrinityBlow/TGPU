@@ -133,7 +133,7 @@ int main(int argc, char *argv[]){
     }
 
 	printf("Tiempo para la ecuacion CPU: %f\n\n",dwalltime() - timetick);
-
+/*
     for(i = 0; i < N; i++){
         for(j = 0; j < N; j++){
             printf("%f|",matC[i*N+j]);
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]){
         printf("\n");
     }
 	printf("\n");
-
+*/
 
 
     for (i = 0; i < N*N; i++){
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]){
     error = cudaGetLastError();
     printf("error: %d\n\n",error);    
     
-
+/*
     for(i = 0; i < N; i++){
         for(j = 0; j < N; j++){
             printf("%f|",matC[i*N+j]);
@@ -175,7 +175,7 @@ int main(int argc, char *argv[]){
         printf("\n");
     }
 	printf("\n");
-
+*/
     //--------------------------------gpu out-place termina ------------------------------------    
 
     cudaFree(d_matA);
@@ -227,7 +227,7 @@ int main(int argc, char *argv[]){
     cudaFree(d_matA);
     cudaFree(d_matB);
     cudaFree(d_matC);
-
+/*
   //imprime la matriz matC
     for(i = 0; i < N; i++){
         for(j = 0; j < N; j++){
@@ -237,10 +237,9 @@ int main(int argc, char *argv[]){
     }
 	printf("\n");
 
-
+*/
     free(matA);
     free(matB);
     free(matC);
     return 0;
 }
-
