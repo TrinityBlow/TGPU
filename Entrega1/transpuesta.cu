@@ -5,7 +5,7 @@
 #include <math.h>
 
 __global__ void kernel_transpuesta(double *m, int N){
-	int tid = blockIdx.x*blockDim.x + threadIdx.x;
+	int tid = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
 	int i = int((1 + sqrtf(1 + 8*tid)) / 2);
 	int j = tid - (i*(i-1)/2); int aux;
 	if ( (i<N) && (j<N) ){
@@ -20,7 +20,7 @@ int main(int argc, char *argv[]){
 
     cudaError_t error;
     unsigned int N = 8;
-    unsigned long CUDA_BLK = 2, gridBlock;
+    unsigned long CUDA_BLK = 4, gridBlock;
     unsigned long numBytes = sizeof(double)*N*N;
     double *matA,*d_matA;
     unsigned int i,j;
@@ -39,6 +39,8 @@ int main(int argc, char *argv[]){
   dim3 dimBlock(CUDA_BLK,CUDA_BLK); // Bloque bidimencional de hilos (*cb* hilos)
   dim3 dimGrid(gridBlock,gridBlock); // Grid bidimencional (*ceil(n/cb)* bloques)
 
+    kernel_transpuesta<<<dimGrid, dimBlock>>>(d_matA, N);
+    cudaThreadSynchronize();
     kernel_transpuesta<<<dimGrid, dimBlock>>>(d_matA, N);
     cudaThreadSynchronize();
     kernel_transpuesta<<<dimGrid, dimBlock>>>(d_matA, N);
