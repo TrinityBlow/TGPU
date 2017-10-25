@@ -47,6 +47,7 @@ int main(int argc, char *argv[]){
     for (i = 0; i < N; i++){
         vecA[i] = 2;
     }
+    //comment
 
     cudaMalloc((void **) &d_vecA, numBytes);
 
