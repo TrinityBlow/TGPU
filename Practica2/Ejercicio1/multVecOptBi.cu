@@ -15,10 +15,31 @@ double dwalltime(){
 
 
 
-__global__ void vecMult(double *d_vecA,unsigned long dist,unsigned long n,unsigned long tam_tot){    
-    unsigned long int global_id = blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
+__global__ void vecMult(double *d_vecA,unsigned long n){      
+    unsigned long int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    __shared__ double s_vecA[sizeof(double)*32];
+    unsigned int i;
+ //   int y = 2;
+
+
     if (global_id < n){
-        d_vecA[global_id*dist] = d_vecA[global_id*dist] * d_vecA[global_id*dist+dist / 2];
+        
+        s_vecA[threadIdx.x]=d_vecA[global_id];
+        __syncthreads();
+
+
+
+        for( i = 1; i <= 7;  i++) {
+            if( threadIdx.x < (int)(128 >>(i))){
+                s_vecA[threadIdx.x * (1 << i)] += s_vecA[(threadIdx.x * (1 << i)) + (1 << (i-1))];
+            }
+ //           y = y * 2;
+            __syncthreads();
+        }
+
+        if ( threadIdx.x == 0){
+            d_vecA[blockIdx.x] = s_vecA[0];
+        } 
     }
 }
 
@@ -35,40 +56,43 @@ int main(int argc, char *argv[]){
     }
 	//declaracion de variables
     cudaError_t error;
-    unsigned int N = atoi (argv[1]);
-    unsigned long CUDA_BLK = 8,gridBlock; //8*8 = 64
-    unsigned long numBytes = sizeof(double)*N,tam_tot;
+    unsigned long N = atoi (argv[1]);
+    unsigned long CUDA_BLK = 128,GRID_BLK;
+    unsigned long numBytes = sizeof(double)*N;
     double *vecA,result,*d_vecA,timetick;
-    unsigned int i;
+    unsigned long i,j;
 
 
     vecA = (double *)malloc(numBytes);
-    result = 0;
+    result = 1;
     for (i = 0; i < N; i++){
         vecA[i] = 2;
     }
+    //comment
 
-
-    tam_tot = N;
     cudaMalloc((void **) &d_vecA, numBytes);
+    cudaMemcpy(d_vecA, vecA, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
 
-    // Bloque unidimencional de hilos (*cb* hilos)
-    dim3 dimBlock(CUDA_BLK,CUDA_BLK); // Bloque bidimencional de hilos (*cb* hilos)
-    //promedio
+    dim3 dimBlock(CUDA_BLK);
+    
+    unsigned long int iteraciones = log(N) / log(2);
     timetick = dwalltime();
     cudaMemcpy(d_vecA, vecA, numBytes, cudaMemcpyHostToDevice); // CPU -> GPU
-    for(i = 2; i <= N ;i *= 2){
-        gridBlock = (unsigned int)sqrt(N*N/CUDA_BLK/CUDA_BLK / i);
-        dim3 dimGrid(gridBlock,gridBlock); // Grid bidimencional (*ceil(n/cb)* bloques)
-        vecMult<<<dimGrid, dimBlock>>>(d_vecA,i,N/i,tam_tot);
+    for(i = N ; i > 1; i = ceil(float(i) / CUDA_BLK)){
+        GRID_BLK = ceil(float(i) / CUDA_BLK) ; 
+        dim3 dimGrid(GRID_BLK);
+        vecMult<<<dimGrid, dimBlock>>>(d_vecA,i);
         cudaThreadSynchronize();
     }
-    cudaMemcpy(&result, d_vecA, sizeof(double), cudaMemcpyDeviceToHost); // GPU -> CPU
+    cudaMemcpy(vecA, d_vecA, sizeof(double), cudaMemcpyDeviceToHost); // GPU -> CPU
 
 	printf("Tiempo para la GPU: %f\n",dwalltime() - timetick);
     error = cudaGetLastError();
-    printf("error: %d\n\n",error);
-    printf("resultadoGPU: %f\n",result);
+    printf("error: %d\n",error);
+    
+    printf("%f|",vecA[0]);
+    printf("\n\n");
+
 
     cudaFree(d_vecA);
     free(vecA);
