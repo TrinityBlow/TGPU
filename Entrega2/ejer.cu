@@ -4,6 +4,8 @@
 #include <sys/resource.h>
 #include <math.h>
 
+#define BASETYPE float
+
 double dwalltime(){
 	double sec;
 	struct timeval tv;
@@ -12,70 +14,64 @@ double dwalltime(){
 	sec = tv.tv_sec + tv.tv_usec/1000000.0;
 	return sec;
 }
-__global__ void matDet(double *d_matA, double *detM, int desp){ 
-	int global_id =  blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
-    extern __shared__ double datos[];
-    double *s_mat = &datos[0];
-    double *s_detAux = &datos[desp];
-    int offset = (threadIdx.y * blockDim.x + threadIdx.x)*16; 
+
+__global__ void matDet(BASETYPE *d_matA, BASETYPE *detM, int desp){ 
+	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    extern __shared__ BASETYPE datos[];
+    BASETYPE *s_mat = &datos[0];
+    BASETYPE *s_detAux = &datos[desp];
+    int offset = (threadIdx.x)*16; 
     unsigned int i;
 
     for(i = 0; i < 16; i++){
-        s_mat[(threadIdx.y * blockDim.x + threadIdx.x) * 16 + i]=d_matA[global_id * 16 + i];
+        s_mat[(threadIdx.x) * 16 + i]=d_matA[global_id * 16 + i];
 
     }  
     __syncthreads();  
 
     for(i = 0; i < 4; i++){
-        s_detAux[(threadIdx.y * blockDim.x + threadIdx.x) * 4+i]=0;
+        s_detAux[(threadIdx.x) * 4+i]=0;
     }
     __syncthreads();
 
-    //  printf("globalId:%d|%d|%d|%d|%d\n",global_id,(threadIdx.y * blockDim.x + threadIdx.x)*4,(threadIdx.y * blockDim.x + threadIdx.x)*4+1,(threadIdx.y * blockDim.x + threadIdx.x)*4+2,(threadIdx.y * blockDim.x + threadIdx.x)*4+3);
-    s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4] +=  s_mat[offset] * ( (s_mat[offset+5]*s_mat[offset+10]*s_mat[offset+15])+(s_mat[offset+6]*s_mat[offset+11]*s_mat[offset+13])+(s_mat[offset+7]*s_mat[offset+9]*s_mat[offset+14])   +  (-1*(s_mat[offset+7]*s_mat[offset+10]*s_mat[offset+13]))   + (-1*(s_mat[offset+5]*s_mat[offset+11]*s_mat[offset+14]))  + (-1*(s_mat[offset+6]*s_mat[offset+9]*s_mat[offset+15])) );
+    //  printf("globalId:%d|%d|%d|%d|%d\n",global_id,(threadIdx.x)*4,(threadIdx.x)*4+1,(threadIdx.x)*4+2,(threadIdx.x)*4+3);
+    s_detAux[(threadIdx.x)*4] +=  s_mat[offset] * ( (s_mat[offset+5]*s_mat[offset+10]*s_mat[offset+15])+(s_mat[offset+6]*s_mat[offset+11]*s_mat[offset+13])+(s_mat[offset+7]*s_mat[offset+9]*s_mat[offset+14])   +  (-1*(s_mat[offset+7]*s_mat[offset+10]*s_mat[offset+13]))   + (-1*(s_mat[offset+5]*s_mat[offset+11]*s_mat[offset+14]))  + (-1*(s_mat[offset+6]*s_mat[offset+9]*s_mat[offset+15])) );
 
-    s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4+1] +=  (-1*s_mat[offset+1]) * ( (s_mat[offset+4]*s_mat[offset+10]*s_mat[offset+15])+(s_mat[offset+6]*s_mat[offset+11]*s_mat[offset+12])+(s_mat[offset+7]*s_mat[offset+8]*s_mat[offset+14])   +  (-1*(s_mat[offset+7]*s_mat[offset+10]*s_mat[offset+12]))   + (-1*(s_mat[offset+4]*s_mat[offset+11]*s_mat[offset+14]))  + (-1*(s_mat[offset+6]*s_mat[offset+8]*s_mat[offset+15])) );    
+    s_detAux[(threadIdx.x)*4+1] +=  (-1*s_mat[offset+1]) * ( (s_mat[offset+4]*s_mat[offset+10]*s_mat[offset+15])+(s_mat[offset+6]*s_mat[offset+11]*s_mat[offset+12])+(s_mat[offset+7]*s_mat[offset+8]*s_mat[offset+14])   +  (-1*(s_mat[offset+7]*s_mat[offset+10]*s_mat[offset+12]))   + (-1*(s_mat[offset+4]*s_mat[offset+11]*s_mat[offset+14]))  + (-1*(s_mat[offset+6]*s_mat[offset+8]*s_mat[offset+15])) );    
 
-    s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4+2] +=  s_mat[offset+2] * ( (s_mat[offset+4]*s_mat[offset+9]*s_mat[offset+15])+(s_mat[offset+5]*s_mat[offset+11]*s_mat[offset+12])+(s_mat[offset+7]*s_mat[offset+8]*s_mat[offset+13])   +  (-1*(s_mat[offset+7]*s_mat[offset+9]*s_mat[offset+12]))   + (-1*(s_mat[offset+4]*s_mat[offset+11]*s_mat[offset+13]))  + (-1*(s_mat[offset+5]*s_mat[offset+8]*s_mat[offset+15])) );        
+    s_detAux[(threadIdx.x)*4+2] +=  s_mat[offset+2] * ( (s_mat[offset+4]*s_mat[offset+9]*s_mat[offset+15])+(s_mat[offset+5]*s_mat[offset+11]*s_mat[offset+12])+(s_mat[offset+7]*s_mat[offset+8]*s_mat[offset+13])   +  (-1*(s_mat[offset+7]*s_mat[offset+9]*s_mat[offset+12]))   + (-1*(s_mat[offset+4]*s_mat[offset+11]*s_mat[offset+13]))  + (-1*(s_mat[offset+5]*s_mat[offset+8]*s_mat[offset+15])) );        
 
-    s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4+3] +=  (-1*s_mat[offset+3]) * ( (s_mat[offset+4]*s_mat[offset+9]*s_mat[offset+14])+(s_mat[offset+5]*s_mat[offset+10]*s_mat[offset+12])+(s_mat[offset+6]*s_mat[offset+8]*s_mat[offset+13])   +  (-1*(s_mat[offset+6]*s_mat[offset+9]*s_mat[offset+12]))   + (-1*(s_mat[offset+4]*s_mat[offset+10]*s_mat[offset+13]))  + (-1*(s_mat[offset+5]*s_mat[offset+8]*s_mat[offset+14])) );        
-    
-    detM[blockIdx.x * blockDim.x * blockDim.y + (threadIdx.y * blockDim.x + threadIdx.x)] = s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4] + s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4+1] + s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4+2] + s_detAux[(threadIdx.y * blockDim.x + threadIdx.x)*4+3]; 
+    s_detAux[(threadIdx.x)*4+3] +=  (-1*s_mat[offset+3]) * ( (s_mat[offset+4]*s_mat[offset+9]*s_mat[offset+14])+(s_mat[offset+5]*s_mat[offset+10]*s_mat[offset+12])+(s_mat[offset+6]*s_mat[offset+8]*s_mat[offset+13])   +  (-1*(s_mat[offset+6]*s_mat[offset+9]*s_mat[offset+12]))   + (-1*(s_mat[offset+4]*s_mat[offset+10]*s_mat[offset+13]))  + (-1*(s_mat[offset+5]*s_mat[offset+8]*s_mat[offset+14])) );        
+    detM[blockIdx.x * blockDim.x + (threadIdx.x)] = s_detAux[(threadIdx.x)*4] + s_detAux[(threadIdx.x)*4+1] + s_detAux[(threadIdx.x)*4+2] + s_detAux[(threadIdx.x)*4+3]; 
     __syncthreads();
         
 }
 
-__global__ void vecMult(double *d_matA,unsigned long n, int iteraciones){      
-	int global_id =  blockIdx.x * blockDim.x * blockDim.y + threadIdx.y * blockDim.x + threadIdx.x;
-    extern __shared__ double s_mat[];
+__global__ void vecMult(BASETYPE *d_matA,unsigned long n){     
+	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    extern __shared__ BASETYPE s_mat[];
     unsigned int i,j;
 
+	for(i = 0; i < 16; i++){
+	    s_mat[threadIdx.x * 16 + i]=d_matA[global_id * 16 + i];
+	}
+	__syncthreads();
 
-    for(i = 0; i < 16; i++){
-        s_mat[(threadIdx.y * blockDim.x + threadIdx.x) * 16 + i]=d_matA[global_id * 16 + i];
-    }        
-    __syncthreads();
-
-    for( j = 1; j < (blockDim.x * blockDim.y); j *= 2 ){
-        if ((threadIdx.y * blockDim.x + threadIdx.x) < blockDim.x * blockDim.y / j){
-
-            if((threadIdx.y * blockDim.x + threadIdx.x) < blockDim.x * blockDim.y / (j * 2)){
-                for( i = 0; i < 16;  i++) {
-                    s_mat[(threadIdx.y * blockDim.x + threadIdx.x) * 16 + i] += s_mat[((threadIdx.y * blockDim.x + threadIdx.x) * 16 + i) + (blockDim.x * blockDim.y / (j * 2)) * 16]; // 2 * 16 = 32
-                }
-                if ( (threadIdx.y * blockDim.x + threadIdx.x) == 0){
-                }
-            }
-            __syncthreads();
-        }
-    }
+	for( j = 1; j < blockDim.x; j *= 2 ){
+	    if( threadIdx.x < blockDim.x / (j * 2)){
+	        for( i = 0; i < 16;  i++) {
+	            s_mat[(threadIdx.x) * 16 + i] += s_mat[((threadIdx.x) * 16 + i) + (blockDim.x / (j * 2)) * 16]; // 2 * 16 = 32
+	        }
+	    }
+	    __syncthreads();
+	}
 
 
-    if ((threadIdx.y * blockDim.x + threadIdx.x) == 0){
-        for (i = 0; i < 16; i++){
-            d_matA[(blockIdx.x * 16) + i] = s_mat[i];
-        }
-    }
+	if ((threadIdx.x) == 0){
+	    for (i = 0; i < 16; i++){
+	        d_matA[(blockIdx.x * 16) + i] = s_mat[i];
+	    }
+	}
 }
 
 int main(int argc, char *argv[]){
@@ -89,15 +85,16 @@ int main(int argc, char *argv[]){
 	//declaracion de variables
     cudaError_t error;
     unsigned long N = atoi (argv[1]);
-    unsigned long CUDA_BLK = atoi(argv[2]),GRID_BLK,CUDA_BLK_2D = CUDA_BLK * CUDA_BLK;
-    unsigned long numBytes = sizeof(double)*4*4;
-    double *matrices,*d_matrices,*d_detM,*detM,timetick;
+    unsigned long CUDA_BLK = atoi(argv[2]),GRID_BLK,cant_blk;
+    unsigned long numBytes = sizeof(BASETYPE)*4*4;
+    BASETYPE *matrices,*d_matrices,*d_detM,*detM;
+	double timetick;
     unsigned long i,j;
-    int iteraciones,datos_matDet,datos_vecMult,matDet_desp;
+    int datos_matDet,datos_vecMult,matDet_desp;
 
 
-    matrices = (double *)malloc(numBytes*N);
-    detM = (double *)malloc(sizeof(double)*N);
+    matrices = (BASETYPE *)malloc(numBytes*N);
+    detM = (BASETYPE *)malloc(sizeof(BASETYPE)*N);
     for (i = 0; i < 4*4*N; i++){
         matrices[i] = 1;
     }
@@ -112,31 +109,33 @@ int main(int argc, char *argv[]){
     //comment
 
     cudaMalloc((void **) &d_matrices, numBytes*N);
-    cudaMalloc((void **) &d_detM, sizeof(double)*N);
-    datos_matDet = numBytes * CUDA_BLK_2D + sizeof(double) * 4 * CUDA_BLK_2D;
-    datos_vecMult = numBytes * CUDA_BLK_2D;
-    matDet_desp = CUDA_BLK_2D * 16;
+    cudaMalloc((void **) &d_detM, sizeof(BASETYPE)*N);
 
-    dim3 dimBlock(CUDA_BLK,CUDA_BLK);
-    dim3 dimGrid(N/ (CUDA_BLK_2D));
+    datos_matDet = numBytes * CUDA_BLK + sizeof(BASETYPE) * 4 * CUDA_BLK;
+
+    datos_vecMult = numBytes * CUDA_BLK;
+    matDet_desp = CUDA_BLK * 16;
+
+	cant_blk = N / CUDA_BLK;
+
+    dim3 dimBlock(CUDA_BLK);
+    dim3 dimGrid(cant_blk);
     
     timetick = dwalltime();
 
-    iteraciones = log(CUDA_BLK_2D) / log(2);
 
     cudaMemcpy(d_matrices, matrices, numBytes*N, cudaMemcpyHostToDevice); // CPU -> GPU
-    cudaMemcpy(d_detM, detM, sizeof(double)*N, cudaMemcpyHostToDevice); // CPU -> GPU
+    cudaMemcpy(d_detM, detM, sizeof(BASETYPE)*N, cudaMemcpyHostToDevice); // CPU -> GPU
     matDet<<<dimGrid, dimBlock,datos_matDet>>>(d_matrices,d_detM,matDet_desp);
     cudaThreadSynchronize();
-    for(i = CUDA_BLK_2D ; i <= N; i *= CUDA_BLK_2D){
-        GRID_BLK = N / (i / (CUDA_BLK_2D)) / (CUDA_BLK_2D); 
+    for(i = N ; i > 1; i = i / CUDA_BLK){
+        GRID_BLK = i / CUDA_BLK; 
         dim3 dimGrid(GRID_BLK);
-        printf("%d|||\n",(int)GRID_BLK);
-   //     vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,(4*4*N) / (i / CUDA_BLK_2D),iteraciones);
-     //   cudaThreadSynchronize();
+        vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,i);
+        cudaThreadSynchronize();
     }
     cudaMemcpy(matrices, d_matrices, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
-    cudaMemcpy(detM, d_detM, sizeof(double)*N, cudaMemcpyDeviceToHost); // GPU -> CPU
+    cudaMemcpy(detM, d_detM, sizeof(BASETYPE)*N, cudaMemcpyDeviceToHost); // GPU -> CPU
 
     for(i = 1; i < N ; i++){
         detM[0] += detM[i]; 
