@@ -47,30 +47,60 @@ __global__ void matDet(BASETYPE *d_matA, BASETYPE *detM, int desp){
         
 }
 
-__global__ void vecMult(BASETYPE *d_matA,unsigned long n, int iteraciones){     
+__global__ void vecMult(BASETYPE *d_matA,unsigned long n){     
 	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
     extern __shared__ BASETYPE s_mat[];
     unsigned int i,j;
 
+	for(i = 0; i < 16; i++){
+	    s_mat[threadIdx.x * 16 + i]=d_matA[global_id * 16 + i];
+	}
+	__syncthreads();
 
-    for(i = 0; i < 16; i++){
-        s_mat[threadIdx.x * 16 + i]=d_matA[global_id * 16 + i];
-    }
-    __syncthreads();
+	for( j = 1; j < blockDim.x; j *= 2 ){
+	    if( threadIdx.x < blockDim.x / (j * 2)){
+	        for( i = 0; i < 16;  i++) {
+	            s_mat[(threadIdx.x) * 16 + i] += s_mat[((threadIdx.x) * 16 + i) + (blockDim.x / (j * 2)) * 16]; // 2 * 16 = 32
+	        }
+	    }
+	    __syncthreads();
+	}
 
-    for( j = 1; j < blockDim.x; j *= 2 ){
-        if( threadIdx.x < blockDim.x / (j * 2)){
-            for( i = 0; i < 16;  i++) {
-                s_mat[(threadIdx.x) * 16 + i] += s_mat[((threadIdx.x) * 16 + i) + (blockDim.x / (j * 2)) * 16]; // 2 * 16 = 32
-            }
+
+	if ((threadIdx.x) == 0){
+	    for (i = 0; i < 16; i++){
+	        d_matA[(blockIdx.x * 16) + i] = s_mat[i];
+	    }
+	}
+}
+
+__global__ void vecMult2(BASETYPE *d_matA,unsigned long n,int offset_m,int cant_m ){     
+	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    extern __shared__ BASETYPE s_mat[];
+    unsigned int i,j;
+
+    if( global_id < n){
+        for(i = 0; i < 16; i++){
+            s_mat[threadIdx.x * 16 + i]=d_matA[(offset_m * 16) +( global_id * 16 + i) ];
+      //      printf("%d|||%.2lf||%d\n",global_id,s_mat[threadIdx.x * 16 + i],offset_m);
         }
         __syncthreads();
-    }
+
+        for( j = 1; j < cant_m; j *= 2 ){
+            if( threadIdx.x < cant_m / (j * 2)){
+                for( i = 0; i < 16;  i++) {
+                    s_mat[(threadIdx.x) * 16 + i] += s_mat[((threadIdx.x) * 16 + i) + (cant_m / (j * 2)) * 16]; // 2 * 16 = 32
+                }
+            }
+            __syncthreads();
+        }
 
 
-    if ((threadIdx.x) == 0){
-        for (i = 0; i < 16; i++){
-            d_matA[(blockIdx.x * 16) + i] = s_mat[i];
+        if ((threadIdx.x) == 0){
+            for (i = 0; i < 16; i++){
+   //             printf("%d|||%.2lf|||%d\n",global_id,s_mat[i],(offset_m / blockDim.x) + ((blockIdx.x * 16) + i));
+                d_matA[(offset_m / blockDim.x) * 16 + ((blockIdx.x * 16) + i)] = s_mat[i];
+            }
         }
     }
 }
@@ -91,7 +121,7 @@ int main(int argc, char *argv[]){
     BASETYPE *matrices,*d_matrices,*d_detM,*detM;
 	double timetick;
     unsigned long i,j;
-    int iteraciones,datos_matDet,datos_vecMult,matDet_desp;
+    int datos_matDet,datos_vecMult,matDet_desp;
 
 
     matrices = (BASETYPE *)malloc(numBytes*N);
@@ -124,18 +154,36 @@ int main(int argc, char *argv[]){
     
     timetick = dwalltime();
 
-    iteraciones = log(CUDA_BLK) / log(2);
 
     cudaMemcpy(d_matrices, matrices, numBytes*N, cudaMemcpyHostToDevice); // CPU -> GPU
     cudaMemcpy(d_detM, detM, sizeof(BASETYPE)*N, cudaMemcpyHostToDevice); // CPU -> GPU
     matDet<<<dimGrid, dimBlock,datos_matDet>>>(d_matrices,d_detM,matDet_desp);
     cudaThreadSynchronize();
-    for(i = CUDA_BLK ; i <= N; i *= CUDA_BLK){
-        GRID_BLK = N / (i / (CUDA_BLK)) / (CUDA_BLK); 
-        dim3 dimGrid(GRID_BLK);
-        vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,(4*4*N) / (i / CUDA_BLK),iteraciones);
-        cudaThreadSynchronize();
+    for(i = N ; i > 1; i = i / CUDA_BLK){
+        GRID_BLK = i / CUDA_BLK; 
+        if ((i % CUDA_BLK) == 0){
+      //      printf("primero---------------------------------\n");
+            dim3 dimGrid(GRID_BLK);
+            vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,i);
+            cudaThreadSynchronize();
+        } else{
+            if(GRID_BLK != 0){
+                vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,i);  
+                cudaThreadSynchronize(); 
+            }
+       //     printf("segundo---------------------------------\n");
+            dim3 dimGrid2(1);
+            vecMult2<<<dimGrid2, dimBlock,datos_vecMult>>>(d_matrices,(i % CUDA_BLK),GRID_BLK * CUDA_BLK,(i % CUDA_BLK));  
+            cudaThreadSynchronize();
+            i = i + (i % CUDA_BLK);
+        }
     }
+ /*   for(i = N ; i > 1; i = i / CUDA_BLK){
+        GRID_BLK = i / CUDA_BLK; 
+        dim3 dimGrid(GRID_BLK);
+        vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,i);
+        cudaThreadSynchronize();
+    }*/
     cudaMemcpy(matrices, d_matrices, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
     cudaMemcpy(detM, d_detM, sizeof(BASETYPE)*N, cudaMemcpyDeviceToHost); // GPU -> CPU
 

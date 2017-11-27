@@ -4,6 +4,8 @@
 #include <sys/resource.h>
 #include <math.h>
 
+#define BASETYPE float
+
 double dwalltime(){
 	double sec;
 	struct timeval tv;
@@ -24,13 +26,14 @@ int main(int argc, char *argv[]){
 
 	//declaracion de variables
     unsigned long N = atoi (argv[1]);
-    unsigned long numBytes = sizeof(double)*4*4;
-    double *matrices,*result,detAux,detP,timetick;
+    unsigned long numBytes = sizeof(BASETYPE)*4*4;
+    BASETYPE *matrices,*result,detAux,detP;
+    double timetick;
     unsigned long i,j;
 
 
-    matrices = (double *)malloc(numBytes*N);
-    result = (double *)malloc(numBytes);
+    matrices = (BASETYPE *)malloc(numBytes*N);
+    result = (BASETYPE *)malloc(numBytes);
     detP = 0;
 
     for (i = 0; i < N; i++){
