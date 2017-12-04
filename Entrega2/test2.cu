@@ -48,44 +48,44 @@ __global__ void matDet(BASETYPE *d_matA, BASETYPE *detM, int desp){
 }
 
 __global__ void vecMult(BASETYPE *d_matA,unsigned long n){     
-	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+//int global_id = blockIdx.x * blockDim.x + threadIdx.x;
     BASETYPE r_matA1,r_matA2;
     extern __shared__ BASETYPE s_mat[];
     unsigned int j;
 
 
-	r_matA1=d_matA[global_id * 16];
-    r_matA2=d_matA[global_id * 16 + 1];
-	s_mat[threadIdx.x * 16]=r_matA1;
-	s_mat[threadIdx.x * 16 + 1]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 2];
-    r_matA2=d_matA[global_id * 16 + 3];
-	s_mat[threadIdx.x * 16 + 2]=r_matA1;
-	s_mat[threadIdx.x * 16 + 3]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 4];
-    r_matA2=d_matA[global_id * 16 + 5];
-	s_mat[threadIdx.x * 16 + 4]=r_matA1;
-	s_mat[threadIdx.x * 16 + 5]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 6];
-    r_matA2=d_matA[global_id * 16 + 7];
-	s_mat[threadIdx.x * 16 + 6]=r_matA1;
-	s_mat[threadIdx.x * 16 + 7]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 8];
-    r_matA2=d_matA[global_id * 16 + 9];
-	s_mat[threadIdx.x * 16 + 8]=r_matA1;
-	s_mat[threadIdx.x * 16 + 9]=r_matA2;
-	r_matA1=d_matA[global_id * 16 + 10];
-	r_matA2=d_matA[global_id * 16 + 11];
-	s_mat[threadIdx.x * 16 + 10]=r_matA1;
-	s_mat[threadIdx.x * 16 + 11]=r_matA2;
-	r_matA1=d_matA[global_id * 16 + 12];
-	r_matA2=d_matA[global_id * 16 + 13];
-	s_mat[threadIdx.x * 16 + 12]=r_matA1;
-	s_mat[threadIdx.x * 16 + 13]=r_matA2;
-	r_matA1=d_matA[global_id * 16 + 14];
-	r_matA2=d_matA[global_id * 16 + 15];
-	s_mat[threadIdx.x * 16 + 14]=r_matA1;
-	s_mat[threadIdx.x * 16 + 15]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x];
+	s_mat[threadIdx.x]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 2];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 3];
+	s_mat[threadIdx.x + blockDim.x * 2]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x * 3]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 4];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 5];
+	s_mat[threadIdx.x + blockDim.x * 4]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x * 5]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 6];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 7];
+	s_mat[threadIdx.x + blockDim.x * 6]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x * 7]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 8];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 9];
+	s_mat[threadIdx.x + blockDim.x * 8]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x * 9]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 10];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 11];
+	s_mat[threadIdx.x + blockDim.x * 10]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x * 11]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 12];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 13];
+	s_mat[threadIdx.x + blockDim.x * 12]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x * 13]=r_matA2;
+	r_matA1=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 14];
+    r_matA2=d_matA[blockIdx.x * blockDim.x * 16 + threadIdx.x + blockDim.x * 15];
+	s_mat[threadIdx.x + blockDim.x * 14]=r_matA1;
+	s_mat[threadIdx.x + blockDim.x * 15]=r_matA2;
 	__syncthreads();
 
 	for( j = 1; j < blockDim.x; j *= 2 ){

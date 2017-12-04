@@ -16,22 +16,35 @@ double dwalltime(){
 }
 
 __global__ void matDet(BASETYPE *d_matA, BASETYPE *detM, int desp){ 
-	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+//	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int distA_id = blockIdx.x * blockDim.x * 16;
     extern __shared__ BASETYPE datos[];
     BASETYPE *s_mat = &datos[0];
     BASETYPE *s_detAux = &datos[desp];
     int offset = (threadIdx.x)*16; 
-    unsigned int i;
 
-    for(i = 0; i < 16; i++){    
-        s_mat[(threadIdx.x) * 16 + i]=d_matA[global_id * 16 + i];
+	s_mat[threadIdx.x]=d_matA[distA_id + threadIdx.x];
+	s_mat[threadIdx.x + blockDim.x]=d_matA[distA_id + threadIdx.x + blockDim.x];
+	s_mat[threadIdx.x + blockDim.x * 2]=d_matA[distA_id + threadIdx.x + blockDim.x * 2];
+	s_mat[threadIdx.x + blockDim.x * 3]=d_matA[distA_id + threadIdx.x + blockDim.x * 3];
+	s_mat[threadIdx.x + blockDim.x * 4]=d_matA[distA_id + threadIdx.x + blockDim.x * 4];
+	s_mat[threadIdx.x + blockDim.x * 5]=d_matA[distA_id + threadIdx.x + blockDim.x * 5];
+	s_mat[threadIdx.x + blockDim.x * 6]=d_matA[distA_id + threadIdx.x + blockDim.x * 6];
+	s_mat[threadIdx.x + blockDim.x * 7]=d_matA[distA_id + threadIdx.x + blockDim.x * 7];
+	s_mat[threadIdx.x + blockDim.x * 8]=d_matA[distA_id + threadIdx.x + blockDim.x * 8];
+	s_mat[threadIdx.x + blockDim.x * 9]=d_matA[distA_id + threadIdx.x + blockDim.x * 9];
+	s_mat[threadIdx.x + blockDim.x * 10]=d_matA[distA_id + threadIdx.x + blockDim.x * 10];
+	s_mat[threadIdx.x + blockDim.x * 11]=d_matA[distA_id + threadIdx.x + blockDim.x * 11];
+	s_mat[threadIdx.x + blockDim.x * 12]=d_matA[distA_id + threadIdx.x + blockDim.x * 12];
+	s_mat[threadIdx.x + blockDim.x * 13]=d_matA[distA_id + threadIdx.x + blockDim.x * 13];
+	s_mat[threadIdx.x + blockDim.x * 14]=d_matA[distA_id + threadIdx.x + blockDim.x * 14];
+	s_mat[threadIdx.x + blockDim.x * 15]=d_matA[distA_id + threadIdx.x + blockDim.x * 15];
+	__syncthreads();
 
-    }  
-    __syncthreads();  
-
-    for(i = 0; i < 4; i++){
-        s_detAux[(threadIdx.x) * 4+i]=0;
-    }
+    s_detAux[(threadIdx.x) * 4]=0;
+    s_detAux[(threadIdx.x) * 4 + 1]=0;
+    s_detAux[(threadIdx.x) * 4 + 2]=0;
+    s_detAux[(threadIdx.x) * 4 + 3]=0;
     __syncthreads();
 
     //  printf("globalId:%d|%d|%d|%d|%d\n",global_id,(threadIdx.x)*4,(threadIdx.x)*4+1,(threadIdx.x)*4+2,(threadIdx.x)*4+3);
@@ -48,64 +61,50 @@ __global__ void matDet(BASETYPE *d_matA, BASETYPE *detM, int desp){
 }
 
 __global__ void vecMult(BASETYPE *d_matA,unsigned long n){     
-	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
-    BASETYPE r_matA1,r_matA2;
+//	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int distA_id = blockIdx.x * blockDim.x * 16;
+    int distB_id = threadIdx.x * 16;
+    int distC_id;
     extern __shared__ BASETYPE s_mat[];
     unsigned int j;
 
-
-	r_matA1=d_matA[global_id * 16];
-    r_matA2=d_matA[global_id * 16 + 1];
-	s_mat[threadIdx.x * 16]=r_matA1;
-	s_mat[threadIdx.x * 16 + 1]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 2];
-    r_matA2=d_matA[global_id * 16 + 3];
-	s_mat[threadIdx.x * 16 + 2]=r_matA1;
-	s_mat[threadIdx.x * 16 + 3]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 4];
-    r_matA2=d_matA[global_id * 16 + 5];
-	s_mat[threadIdx.x * 16 + 4]=r_matA1;
-	s_mat[threadIdx.x * 16 + 5]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 6];
-    r_matA2=d_matA[global_id * 16 + 7];
-	s_mat[threadIdx.x * 16 + 6]=r_matA1;
-	s_mat[threadIdx.x * 16 + 7]=r_matA2;
-    r_matA1=d_matA[global_id * 16 + 8];
-    r_matA2=d_matA[global_id * 16 + 9];
-	s_mat[threadIdx.x * 16 + 8]=r_matA1;
-	s_mat[threadIdx.x * 16 + 9]=r_matA2;
-	r_matA1=d_matA[global_id * 16 + 10];
-	r_matA2=d_matA[global_id * 16 + 11];
-	s_mat[threadIdx.x * 16 + 10]=r_matA1;
-	s_mat[threadIdx.x * 16 + 11]=r_matA2;
-	r_matA1=d_matA[global_id * 16 + 12];
-	r_matA2=d_matA[global_id * 16 + 13];
-	s_mat[threadIdx.x * 16 + 12]=r_matA1;
-	s_mat[threadIdx.x * 16 + 13]=r_matA2;
-	r_matA1=d_matA[global_id * 16 + 14];
-	r_matA2=d_matA[global_id * 16 + 15];
-	s_mat[threadIdx.x * 16 + 14]=r_matA1;
-	s_mat[threadIdx.x * 16 + 15]=r_matA2;
+	s_mat[threadIdx.x]=d_matA[distA_id + threadIdx.x];
+	s_mat[threadIdx.x + blockDim.x]=d_matA[distA_id + threadIdx.x + blockDim.x];
+	s_mat[threadIdx.x + blockDim.x * 2]=d_matA[distA_id + threadIdx.x + blockDim.x * 2];
+	s_mat[threadIdx.x + blockDim.x * 3]=d_matA[distA_id + threadIdx.x + blockDim.x * 3];
+	s_mat[threadIdx.x + blockDim.x * 4]=d_matA[distA_id + threadIdx.x + blockDim.x * 4];
+	s_mat[threadIdx.x + blockDim.x * 5]=d_matA[distA_id + threadIdx.x + blockDim.x * 5];
+	s_mat[threadIdx.x + blockDim.x * 6]=d_matA[distA_id + threadIdx.x + blockDim.x * 6];
+	s_mat[threadIdx.x + blockDim.x * 7]=d_matA[distA_id + threadIdx.x + blockDim.x * 7];
+	s_mat[threadIdx.x + blockDim.x * 8]=d_matA[distA_id + threadIdx.x + blockDim.x * 8];
+	s_mat[threadIdx.x + blockDim.x * 9]=d_matA[distA_id + threadIdx.x + blockDim.x * 9];
+	s_mat[threadIdx.x + blockDim.x * 10]=d_matA[distA_id + threadIdx.x + blockDim.x * 10];
+	s_mat[threadIdx.x + blockDim.x * 11]=d_matA[distA_id + threadIdx.x + blockDim.x * 11];
+	s_mat[threadIdx.x + blockDim.x * 12]=d_matA[distA_id + threadIdx.x + blockDim.x * 12];
+	s_mat[threadIdx.x + blockDim.x * 13]=d_matA[distA_id + threadIdx.x + blockDim.x * 13];
+	s_mat[threadIdx.x + blockDim.x * 14]=d_matA[distA_id + threadIdx.x + blockDim.x * 14];
+	s_mat[threadIdx.x + blockDim.x * 15]=d_matA[distA_id + threadIdx.x + blockDim.x * 15];
 	__syncthreads();
 
 	for( j = 1; j < blockDim.x; j *= 2 ){
 	    if( threadIdx.x < blockDim.x / (j * 2)){
-            s_mat[(threadIdx.x) * 16] += s_mat[((threadIdx.x) * 16) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 1] += s_mat[((threadIdx.x) * 16 + 1) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 2] += s_mat[((threadIdx.x) * 16 + 2) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 3] += s_mat[((threadIdx.x) * 16 + 3) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 4] += s_mat[((threadIdx.x) * 16 + 4) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 5] += s_mat[((threadIdx.x) * 16 + 5) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 6] += s_mat[((threadIdx.x) * 16 + 6) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 7] += s_mat[((threadIdx.x) * 16 + 7) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 8] += s_mat[((threadIdx.x) * 16 + 8) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 9] += s_mat[((threadIdx.x) * 16 + 9) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 10] += s_mat[((threadIdx.x) * 16 + 10) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 11] += s_mat[((threadIdx.x) * 16 + 11) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 12] += s_mat[((threadIdx.x) * 16 + 12) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 13] += s_mat[((threadIdx.x) * 16 + 13) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 14] += s_mat[((threadIdx.x) * 16 + 14) + (blockDim.x / (j * 2)) * 16];
-            s_mat[(threadIdx.x) * 16 + 15] += s_mat[((threadIdx.x) * 16 + 15) + (blockDim.x / (j * 2)) * 16];
+            distC_id = (blockDim.x / (j * 2)) * 16;
+            s_mat[distB_id] += s_mat[(distB_id) + distC_id];
+            s_mat[distB_id + 1] += s_mat[(distB_id + 1) + distC_id];
+            s_mat[distB_id + 2] += s_mat[(distB_id + 2) + distC_id];
+            s_mat[distB_id + 3] += s_mat[(distB_id + 3) + distC_id];
+            s_mat[distB_id + 4] += s_mat[(distB_id + 4) + distC_id];
+            s_mat[distB_id + 5] += s_mat[(distB_id + 5) + distC_id];
+            s_mat[distB_id + 6] += s_mat[(distB_id + 6) + distC_id];
+            s_mat[distB_id + 7] += s_mat[(distB_id + 7) + distC_id];
+            s_mat[distB_id + 8] += s_mat[(distB_id + 8) + distC_id];
+            s_mat[distB_id + 9] += s_mat[(distB_id + 9) + distC_id];
+            s_mat[distB_id + 10] += s_mat[(distB_id + 10) + distC_id];
+            s_mat[distB_id + 11] += s_mat[(distB_id + 11) + distC_id];
+            s_mat[distB_id + 12] += s_mat[(distB_id + 12) + distC_id];
+            s_mat[distB_id + 13] += s_mat[(distB_id + 13) + distC_id];
+            s_mat[distB_id + 14] += s_mat[(distB_id + 14) + distC_id];
+            s_mat[distB_id + 15] += s_mat[(distB_id + 15) + distC_id];
 	        
 	    }
 	    __syncthreads();
@@ -134,47 +133,48 @@ __global__ void vecMult(BASETYPE *d_matA,unsigned long n){
 
 __global__ void vecMult2(BASETYPE *d_matA,unsigned long n,int offset_m,int cant_m ){     
 	int global_id = blockIdx.x * blockDim.x + threadIdx.x;
+    int distB_id = threadIdx.x * 16;
     extern __shared__ BASETYPE s_mat[];
     unsigned int j;
 
     if( global_id < n){
 
-        s_mat[threadIdx.x * 16]=d_matA[(offset_m * 16) +( global_id * 16) ];
-        s_mat[threadIdx.x * 16 + 1]=d_matA[(offset_m * 16) +( global_id * 16 + 1) ];
-        s_mat[threadIdx.x * 16 + 2]=d_matA[(offset_m * 16) +( global_id * 16 + 2) ];
-        s_mat[threadIdx.x * 16 + 3]=d_matA[(offset_m * 16) +( global_id * 16 + 3) ];
-        s_mat[threadIdx.x * 16 + 4]=d_matA[(offset_m * 16) +( global_id * 16 + 4) ];
-        s_mat[threadIdx.x * 16 + 5]=d_matA[(offset_m * 16) +( global_id * 16 + 5) ];
-        s_mat[threadIdx.x * 16 + 6]=d_matA[(offset_m * 16) +( global_id * 16 + 6) ];
-        s_mat[threadIdx.x * 16 + 7]=d_matA[(offset_m * 16) +( global_id * 16 + 7) ];
-        s_mat[threadIdx.x * 16 + 8]=d_matA[(offset_m * 16) +( global_id * 16 + 8) ];
-        s_mat[threadIdx.x * 16 + 9]=d_matA[(offset_m * 16) +( global_id * 16 + 9) ];
-        s_mat[threadIdx.x * 16 + 10]=d_matA[(offset_m * 16) +( global_id * 16 + 10) ];
-        s_mat[threadIdx.x * 16 + 11]=d_matA[(offset_m * 16) +( global_id * 16 + 11) ];
-        s_mat[threadIdx.x * 16 + 12]=d_matA[(offset_m * 16) +( global_id * 16 + 12) ];
-        s_mat[threadIdx.x * 16 + 13]=d_matA[(offset_m * 16) +( global_id * 16 + 13) ];
-        s_mat[threadIdx.x * 16 + 14]=d_matA[(offset_m * 16) +( global_id * 16 + 14) ];
-        s_mat[threadIdx.x * 16 + 15]=d_matA[(offset_m * 16) +( global_id * 16 + 15) ];
+        s_mat[threadIdx.x]=d_matA[(offset_m * 16) + threadIdx.x];
+        s_mat[threadIdx.x + n]=d_matA[(offset_m * 16) + threadIdx.x + n];
+        s_mat[threadIdx.x + n * 2]=d_matA[(offset_m * 16) + threadIdx.x + n * 2];
+        s_mat[threadIdx.x + n * 3]=d_matA[(offset_m * 16) + threadIdx.x + n * 3];
+        s_mat[threadIdx.x + n * 4]=d_matA[(offset_m * 16) + threadIdx.x + n * 4];
+        s_mat[threadIdx.x + n * 5]=d_matA[(offset_m * 16) + threadIdx.x + n * 5];
+        s_mat[threadIdx.x + n * 6]=d_matA[(offset_m * 16) + threadIdx.x + n * 6];
+        s_mat[threadIdx.x + n * 7]=d_matA[(offset_m * 16) + threadIdx.x + n * 7];
+        s_mat[threadIdx.x + n * 8]=d_matA[(offset_m * 16) + threadIdx.x + n * 8];
+        s_mat[threadIdx.x + n * 9]=d_matA[(offset_m * 16) + threadIdx.x + n * 9];
+        s_mat[threadIdx.x + n * 10]=d_matA[(offset_m * 16) + threadIdx.x + n * 10];
+        s_mat[threadIdx.x + n * 11]=d_matA[(offset_m * 16) + threadIdx.x + n * 11];
+        s_mat[threadIdx.x + n * 12]=d_matA[(offset_m * 16) + threadIdx.x + n * 12];
+        s_mat[threadIdx.x + n * 13]=d_matA[(offset_m * 16) + threadIdx.x + n * 13];
+        s_mat[threadIdx.x + n * 14]=d_matA[(offset_m * 16) + threadIdx.x + n * 14];
+        s_mat[threadIdx.x + n * 15]=d_matA[(offset_m * 16) + threadIdx.x + n * 15];
         __syncthreads();
 
         for( j = 1; j < cant_m; j *= 2 ){
             if( threadIdx.x < cant_m / (j * 2)){
-                s_mat[(threadIdx.x) * 16] += s_mat[((threadIdx.x) * 16) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 1] += s_mat[((threadIdx.x) * 16 + 1) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 2] += s_mat[((threadIdx.x) * 16 + 2) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 3] += s_mat[((threadIdx.x) * 16 + 3) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 4] += s_mat[((threadIdx.x) * 16 + 4) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 5] += s_mat[((threadIdx.x) * 16 + 5) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 6] += s_mat[((threadIdx.x) * 16 + 6) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 7] += s_mat[((threadIdx.x) * 16 + 7) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 8] += s_mat[((threadIdx.x) * 16 + 8) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 9] += s_mat[((threadIdx.x) * 16 + 9) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 10] += s_mat[((threadIdx.x) * 16 + 10) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 11] += s_mat[((threadIdx.x) * 16 + 11) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 12] += s_mat[((threadIdx.x) * 16 + 12) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 13] += s_mat[((threadIdx.x) * 16 + 13) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 14] += s_mat[((threadIdx.x) * 16 + 14) + (cant_m / (j * 2)) * 16];
-                s_mat[(threadIdx.x) * 16 + 15] += s_mat[((threadIdx.x) * 16 + 15) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id] += s_mat[(distB_id) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 1] += s_mat[(distB_id + 1) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 2] += s_mat[(distB_id + 2) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 3] += s_mat[(distB_id + 3) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 4] += s_mat[(distB_id + 4) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 5] += s_mat[(distB_id + 5) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 6] += s_mat[(distB_id + 6) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 7] += s_mat[(distB_id + 7) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 8] += s_mat[(distB_id + 8) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 9] += s_mat[(distB_id + 9) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 10] += s_mat[(distB_id + 10) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 11] += s_mat[(distB_id + 11) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 12] += s_mat[(distB_id + 12) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 13] += s_mat[(distB_id + 13) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 14] += s_mat[(distB_id + 14) + (cant_m / (j * 2)) * 16];
+                s_mat[distB_id + 15] += s_mat[(distB_id + 15) + (cant_m / (j * 2)) * 16];
                 
             }
             __syncthreads();
@@ -259,7 +259,6 @@ int main(int argc, char *argv[]){
     for(i = N ; i > 1; i = i / CUDA_BLK){
         GRID_BLK = i / CUDA_BLK; 
         if ((i % CUDA_BLK) == 0){
-      //      printf("primero---------------------------------\n");
             dim3 dimGrid(GRID_BLK);
             vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,i);
             cudaThreadSynchronize();
@@ -268,19 +267,12 @@ int main(int argc, char *argv[]){
                 vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,i);  
                 cudaThreadSynchronize(); 
             }
-       //     printf("segundo---------------------------------\n");
             dim3 dimGrid2(1);
             vecMult2<<<dimGrid2, dimBlock,datos_vecMult>>>(d_matrices,(i % CUDA_BLK),GRID_BLK * CUDA_BLK,(i % CUDA_BLK));  
             cudaThreadSynchronize();
             i = i + (i % CUDA_BLK);
         }
     }
- /*   for(i = N ; i > 1; i = i / CUDA_BLK){
-        GRID_BLK = i / CUDA_BLK; 
-        dim3 dimGrid(GRID_BLK);
-        vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices,i);
-        cudaThreadSynchronize();
-    }*/
     cudaMemcpy(matrices, d_matrices, numBytes, cudaMemcpyDeviceToHost); // GPU -> CPU
     cudaMemcpy(detM, d_detM, sizeof(BASETYPE)*N, cudaMemcpyDeviceToHost); // GPU -> CPU
 
