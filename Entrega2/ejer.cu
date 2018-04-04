@@ -23,7 +23,7 @@ __global__ void matDet(BASETYPE *d_matA, BASETYPE *detM, int desp){
     int offset = (threadIdx.x)*16; 
     unsigned int i;
 
-    for(i = 0; i < 16; i++){
+    for(i = 0; i < 16; i++){    
         s_mat[(threadIdx.x) * 16 + i]=d_matA[global_id * 16 + i];
 
     }  

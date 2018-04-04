@@ -310,7 +310,7 @@ int main(int argc, char *argv[]){
     matDet<<<dimGrid, dimBlock,datos_matDet>>>(d_matrices,d_detM,matDet_desp);
     cudaThreadSynchronize();
     for(i = N ; i > 1; i = i / CUDA_BLK){
-        GRID_BLK = i / CUDA_BLK; 
+        // GRID_BLK = i / CUDA_BLK; 
         if ((i % CUDA_BLK) == 0){
             dim3 dimGrid(GRID_BLK);
             vecMult<<<dimGrid, dimBlock,datos_vecMult>>>(d_matrices);
